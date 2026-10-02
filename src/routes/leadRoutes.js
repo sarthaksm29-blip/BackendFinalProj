@@ -8,17 +8,22 @@ const {
     deleteLead
 } = require("../controllers/leadController");
 
-const { protect, authorize } = require("../middleware/authMiddleware");
+const { protect } = require("../middleware/authMiddleware");
+
+const { validateRequired } = require("../middleware/validationMiddleware");
 
 const router = express.Router();
 
-// Sales, managers and admins
-router.post("/", protect, authorize("sales", "manager", "admin"), createLead);
-router.get("/", protect, authorize("sales", "manager", "admin"), getLeads);
-router.get("/:id", protect, authorize("sales", "manager", "admin"), getLead);
-router.put("/:id", protect, authorize("sales", "manager", "admin"), updateLead);
+router.post(
+    "/",
+    protect,
+    validateRequired(["name", "email", "phone", "company"]),
+    createLead
+);
 
-// Only managers and admins can delete leads
-router.delete("/:id", protect, authorize("manager", "admin"), deleteLead);
+router.get("/", protect, getLeads);
+router.get("/:id", protect, getLead);
+router.put("/:id", protect, updateLead);
+router.delete("/:id", protect, deleteLead);
 
 module.exports = router;

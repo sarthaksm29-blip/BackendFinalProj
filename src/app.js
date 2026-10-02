@@ -4,10 +4,14 @@ const cors = require("cors");
 const authRoutes = require("./routes/authRoutes");
 const leadRoutes = require("./routes/leadRoutes");
 const dealRoutes = require("./routes/dealRoutes");
+const contactRoutes = require("./routes/contactRoutes");
+const pipelineRoutes = require("./routes/pipelineRoutes");
+const reportRoutes = require("./routes/reportRoutes");
 
 const app = express();
 
 app.use(cors());
+
 app.use(express.json());
 
 app.get("/", (req, res) => {
@@ -17,7 +21,15 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+
 app.use("/api/leads", leadRoutes);
+
 app.use("/api/deals", dealRoutes);
+
+app.use("/api/contacts", contactRoutes);
+
+app.use("/api/pipeline", pipelineRoutes);
+
+app.use("/api/reports", reportRoutes);
 
 module.exports = app;
