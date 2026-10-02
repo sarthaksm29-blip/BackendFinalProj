@@ -1,7 +1,9 @@
-
 const Deal = require("../models/Deal");
 const Lead = require("../models/Lead");
+const User = require("../models/User");
+
 const { getIO } = require("../socket/socket");
+const sendNotification = require("../utils/sendNotification");
 
 // ==================== CREATE DEAL ====================
 const createDeal = async (req, res) => {
@@ -45,6 +47,21 @@ const createDeal = async (req, res) => {
 
         // Real-time pipeline update
         getIO().emit("pipelineUpdated", populatedDeal);
+
+        // Firebase push notification
+        const user = await User.findById(req.user.id);
+
+        if (user?.fcmToken) {
+            await sendNotification({
+                token: user.fcmToken,
+                title: "New Deal Created",
+                body: `${populatedDeal.title} was added to the pipeline`,
+                data: {
+                    dealId: populatedDeal._id,
+                    stage: populatedDeal.stage
+                }
+            });
+        }
 
         res.status(201).json({
             message: "Deal created successfully",
@@ -122,8 +139,10 @@ const updateDeal = async (req, res) => {
         deal.title = req.body.title ?? deal.title;
         deal.value = req.body.value ?? deal.value;
         deal.stage = req.body.stage ?? deal.stage;
+
         deal.expectedCloseDate =
             req.body.expectedCloseDate ?? deal.expectedCloseDate;
+
         deal.notes = req.body.notes ?? deal.notes;
 
         const updatedDeal = await deal.save();
@@ -132,9 +151,27 @@ const updateDeal = async (req, res) => {
             .populate("lead", "name email company")
             .populate("assignedTo", "name email role");
 
-        // Emit real-time event when pipeline changes
+        // Pipeline update + Firebase notification
         if (oldStage !== populatedDeal.stage) {
-            getIO().emit("pipelineUpdated", populatedDeal);
+
+            getIO().emit(
+                "pipelineUpdated",
+                populatedDeal
+            );
+
+            const user = await User.findById(req.user.id);
+
+            if (user?.fcmToken) {
+                await sendNotification({
+                    token: user.fcmToken,
+                    title: "Deal Updated",
+                    body: `${populatedDeal.title} moved to ${populatedDeal.stage}`,
+                    data: {
+                        dealId: populatedDeal._id,
+                        stage: populatedDeal.stage
+                    }
+                });
+            }
         }
 
         res.status(200).json({
@@ -164,9 +201,12 @@ const deleteDeal = async (req, res) => {
 
         await deal.deleteOne();
 
-        getIO().emit("pipelineUpdated", {
-            deletedDealId: req.params.id
-        });
+        getIO().emit(
+            "pipelineUpdated",
+            {
+                deletedDealId: req.params.id
+            }
+        );
 
         res.status(200).json({
             message: "Deal deleted successfully"
