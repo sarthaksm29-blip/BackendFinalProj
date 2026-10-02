@@ -17,7 +17,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
 const email = "sarthaksm29@gmail.com";
-const password = "sarthaksm29";
+const password = "YOUR_FIREBASE_PASSWORD";
 
 async function test() {
     try {
